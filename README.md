@@ -17,6 +17,9 @@ This is a C# WPF demo application with implemented on pure C# written triangle r
 
 A solution was made in Visual Studio 2017. For using just compile and run it.
 
+There is need to change visualization according to following image
+![interface](screenshots/interface_2.png)
+
 ## License
 #### The MIT License (MIT)
 Copyright (c) 2017 Michael Straßburger
