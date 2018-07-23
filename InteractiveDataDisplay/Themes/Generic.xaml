@@ -48,11 +48,14 @@
                                                        Content="{TemplateBinding LeftTitle}"
                                                        VerticalAlignment="Center"
                                                        IsTabStop="False"/>
-                            <d3:PlotAxis x:Name="PART_verticalAxis"
+                            <d3:PlotAxis x:Name="PART_verticalAxis" RenderTransformOrigin="0.5,0.5"
                                          d3:Figure.Placement="Left" 
                                          AxisOrientation="Left"
                                          Foreground="{TemplateBinding Foreground}">
                                 <d3:MouseNavigation IsHorizontalNavigationEnabled="False"/>
+                                <d3:PlotAxis.RenderTransform>
+                                    <ScaleTransform ScaleY="-1"/>
+                                </d3:PlotAxis.RenderTransform>
                             </d3:PlotAxis>
                             <d3:AxisGrid x:Name="PART_axisGrid"
                                          VerticalTicks="{Binding Ticks,ElementName=PART_verticalAxis, Mode=OneWay}"
@@ -74,12 +77,16 @@
                                                        VerticalAlignment="Center"
                                                        IsTabStop="False"/>
                             <d3:PlotAxis x:Name="PART_horizontalAxis"
-                                         d3:Figure.Placement="Bottom" 
-                                         AxisOrientation="Bottom"
+                                         d3:Figure.Placement="Top" 
+                                         AxisOrientation="Top"
                                          Foreground="{TemplateBinding Foreground}">
                                 <d3:MouseNavigation IsVerticalNavigationEnabled="False"/>
                             </d3:PlotAxis>
-                            <ContentPresenter/>
+                            <ContentPresenter RenderTransformOrigin="0.5, 0.5">
+                                <ContentPresenter.RenderTransform>
+                                    <RotateTransform Angle="180" ></RotateTransform>
+                                </ContentPresenter.RenderTransform>
+                            </ContentPresenter>
                             <Border BorderThickness="{TemplateBinding BorderThickness}"
                                     BorderBrush="{TemplateBinding Foreground}" d3:Figure.Placement="Center"/>
                             <d3:Legend x:Name="PART_legend" 

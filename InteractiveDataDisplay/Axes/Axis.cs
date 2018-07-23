@@ -497,7 +497,12 @@ namespace InteractiveDataDisplay.WPF
                 case AxisOrientation.Left:
                     for (int i = 0; i < labels.Length; i++)
                     {
-                        labels[i].RenderTransform = new TranslateTransform { X = maxLabelWidth - labels[i].DesiredSize.Width, Y = GetCoordinateFromTick(cTicks[i], effectiveSize) - labels[i].DesiredSize.Height / 2 };
+                        var transformGroup = new TransformGroup();
+                        transformGroup.Children.Add(new ScaleTransform(1, -1));
+
+                        transformGroup.Children.Add(new TranslateTransform { X = maxLabelWidth - labels[i].DesiredSize.Width, Y = GetCoordinateFromTick(cTicks[i], effectiveSize) - labels[i].DesiredSize.Height / 2 });
+                        labels[i].RenderTransform = transformGroup;
+                        labels[i].RenderTransformOrigin = new Point(0.5, 0.5);
                     }
                     break;
             }
