@@ -54,6 +54,13 @@ namespace InteractiveDataDisplay.WPF
             InvalidateAxis();
             return base.MeasureOverride(availableSize);
         }
+        public bool IsDirectionInverted
+        {
+            get { return (bool)GetValue(IsDirectionInvertedProperty); }
+            set { SetValue(IsDirectionInvertedProperty, value); }
+        }
+        public static readonly DependencyProperty IsDirectionInvertedProperty =
+            DependencyProperty.Register("IsDirectionInverted", typeof(bool), typeof(PlotAxis), new PropertyMetadata(false, (s,e)=> { }));
 
         private void InvalidateAxis()
         {
@@ -67,6 +74,7 @@ namespace InteractiveDataDisplay.WPF
                         axis.Range = new Range(masterPlot.ActualPlotRect.YMin, masterPlot.ActualPlotRect.YMax);
                     }
                     axis.DataTransform = YDataTransform;
+                    axis.IsDirectionInverted = IsDirectionInverted;
                 }
                 else
                 {

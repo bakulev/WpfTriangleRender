@@ -82,6 +82,17 @@ namespace InteractiveDataDisplay.WPF
             get { return (IEnumerable<double>)GetValue(TicksProperty); }
             set { SetValue(TicksProperty, value); }
         }
+
+
+        public bool IsDirectionInverted
+        {
+            get { return (bool)GetValue(IsDirectionInvertedProperty); }
+            set { SetValue(IsDirectionInvertedProperty, value); }
+        }
+        public static readonly DependencyProperty IsDirectionInvertedProperty =
+            DependencyProperty.Register("IsDirectionInverted", typeof(bool), typeof(Axis), new PropertyMetadata(false));
+
+
         /// <summary>
         /// Identifies the <see cref="Ticks"/> dependency property.
         /// </summary>
@@ -498,8 +509,7 @@ namespace InteractiveDataDisplay.WPF
                     for (int i = 0; i < labels.Length; i++)
                     {
                         var transformGroup = new TransformGroup();
-                        transformGroup.Children.Add(new ScaleTransform(1, -1));
-
+                        if(IsDirectionInverted) transformGroup.Children.Add(new ScaleTransform(1, -1));
                         transformGroup.Children.Add(new TranslateTransform { X = maxLabelWidth - labels[i].DesiredSize.Width, Y = GetCoordinateFromTick(cTicks[i], effectiveSize) - labels[i].DesiredSize.Height / 2 });
                         labels[i].RenderTransform = transformGroup;
                         labels[i].RenderTransformOrigin = new Point(0.5, 0.5);

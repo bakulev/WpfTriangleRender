@@ -13,10 +13,10 @@
     Title="MainWindow">
 
     <Grid x:Name="LayoutCart" Background="White">
-        <d3:Chart>
+        <d3:Chart IsYAxesDirrectionInverted="True">
             <d3:HeatmapGraph
-                x:Name="heatmap"
-                d3:Plot.Points = "{Binding PlotPoints}"
+                x:Name="heatmap" 
+                Points = "{Binding PlotPoints}"
                 DataContainer="{Binding Data}"
                 Palette="Black,White"
                 Stroke="Red"
