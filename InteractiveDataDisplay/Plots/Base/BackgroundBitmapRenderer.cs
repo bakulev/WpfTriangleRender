@@ -100,15 +100,18 @@ namespace InteractiveDataDisplay.WPF
 
             return availableSize;
         }
-
+        protected virtual RenderTaskState PrepareRenderTaskState(long id, Size screenSize) {
+            RenderTaskState state = new RenderTaskState(ActualPlotRect, screenSize);
+            state.Id = id;
+            state.Bounds = ComputeBounds();
+            return state;
+        }
         private void EnqueueTask(long id/*Func<RenderTaskState, RenderResult> task*/)
         {
             if (runningTasks.Count < maxTasks)
             {
                 Size screenSize = new Size(Math.Abs(LeftFromX(ActualPlotRect.XMax) - LeftFromX(ActualPlotRect.XMin)), Math.Abs(TopFromY(ActualPlotRect.YMax) - TopFromY(ActualPlotRect.YMin)));
-                RenderTaskState state = new RenderTaskState(ActualPlotRect, screenSize);
-                state.Id = id;
-                state.Bounds = ComputeBounds();
+                var state = PrepareRenderTaskState(id, screenSize);
                 runningTasks.Add(state);
 
                 if (!DesignerProperties.GetIsInDesignMode(this))
@@ -287,6 +290,9 @@ namespace InteractiveDataDisplay.WPF
             ScreenSize = screenSize;
             ActualPlotRect = actualPlotRect;
         }
+        private double[] xArr;
+        private double[] yArr;
+        private double[,] data;
 
         /// <summary>
         /// Gets or sets the state Id.
@@ -315,6 +321,10 @@ namespace InteractiveDataDisplay.WPF
         {
             get { return isCanceled; }
         }
+
+        public double[] XArr { get => xArr; set => xArr = value; }
+        public double[] YArr { get => yArr; set => yArr = value; }
+        public double[,] Data { get => data; set => data = value; }
 
         /// <summary>
         /// Sets state as canceled.

@@ -1,10 +1,12 @@
-// Copyright (c) Microsoft Corporation. All Rights Reserved.
-// Licensed under the MIT License.
-
 using System;
-using System.Windows;
+using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace InteractiveDataDisplay.WPF
 {
@@ -15,13 +17,57 @@ namespace InteractiveDataDisplay.WPF
     [Description("Plots a heatmap graph")]
     public class HeatmapGraph : BackgroundBitmapRenderer, ITooltipProvider
     {
-        private object locker = new object(); // Instance to hold locks for multithread access
+        private object locker = new object();
 
-        private double[] xArr;
-        private double[] yArr;
         private long dataVersion = 0;
-        private double[,] data;
         private double missingValue;
+
+
+        public double[] XArray
+        {
+            get { return (double[])GetValue(XArrayProperty); }
+            set { SetValue(XArrayProperty, value); }
+        }
+        public static readonly DependencyProperty XArrayProperty =
+            DependencyProperty.Register("XArray", typeof(double[]), typeof(HeatmapGraph), new PropertyMetadata(null, (s, e) => { ((HeatmapGraph)s).InvalidateBounds(); }));
+
+
+        public double[] YArray
+        {
+            get { return (double[])GetValue(YArrayProperty); }
+            set { SetValue(YArrayProperty, value); }
+        }
+
+        public static readonly DependencyProperty YArrayProperty =
+            DependencyProperty.Register("YArray", typeof(double[]), typeof(HeatmapGraph), new PropertyMetadata(null, (s, e) => { ((HeatmapGraph)s).InvalidateBounds(); }));
+
+
+        public double[,] DataContainer
+        {
+            get { return (double[,])GetValue(DataContainerProperty); }
+            set { SetValue(DataContainerProperty, value); }
+        }
+
+        public static readonly DependencyProperty DataContainerProperty =
+            DependencyProperty.Register("DataContainer", typeof(double[,]), typeof(HeatmapGraph), new PropertyMetadata(null, (s, e) =>
+            {
+                ((HeatmapGraph)s).dataVersion++;
+                ((HeatmapGraph)s).missingValue = Double.NaN;
+                ((HeatmapGraph)s).InvalidateBounds();
+                ((HeatmapGraph)s).QueueRenderTask();
+            }));
+
+
+
+
+        protected override RenderTaskState PrepareRenderTaskState(long id, Size screenSize)
+        {
+            var result = base.PrepareRenderTaskState(id, screenSize);
+            result.XArr = XArray;
+            result.YArr = YArray;
+            result.Data = DataContainer;
+            return result;
+        }
 
         /// <summary>
         /// Initializes a new instance of <see cref="HeatmapGraph"/> class with default tooltip.
@@ -29,6 +75,7 @@ namespace InteractiveDataDisplay.WPF
         public HeatmapGraph()
         {
             TooltipContentFunc = GetTooltipForPoint;
+            InitLineGraph();
         }
 
         private static void VerifyDimensions(double[,] d, double[] x, double[] y)
@@ -74,9 +121,9 @@ namespace InteractiveDataDisplay.WPF
             VerifyDimensions(data, x, y);
             lock (locker)
             {
-                this.xArr = x;
-                this.yArr = y;
-                this.data = data;
+                this.XArray = x;
+                this.YArray = y;
+                this.DataContainer = data;
                 this.missingValue = missingValue;
                 dataVersion++;
             }
@@ -85,7 +132,6 @@ namespace InteractiveDataDisplay.WPF
 
             return QueueRenderTask();
         }
-
         /// <summary>Plots rectangular heatmap where some data may be missing.
         /// If size <paramref name="data"/> dimensions are equal to lenghtes of corresponding grid parameters
         /// <paramref name="x"/> and <paramref name="y"/> then Gradient render method is used. If <paramref name="data"/>
@@ -126,10 +172,10 @@ namespace InteractiveDataDisplay.WPF
 
         /// <summary>Returns content bounds of this elements in cartesian coordinates.</summary>
         /// <returns>Rectangle with content bounds.</returns>
-       protected override DataRect  ComputeBounds()
+        protected override DataRect ComputeBounds()
         {
-            if (xArr != null && yArr != null)
-                return new DataRect(xArr[0], yArr[0], xArr[xArr.Length - 1], yArr[yArr.Length - 1]);
+            if (XArray != null && YArray != null)
+                return new DataRect(XArray[0], YArray[0], XArray[XArray.Length - 1], YArray[YArray.Length - 1]);
             else
                 return DataRect.Empty;
         }
@@ -235,11 +281,11 @@ namespace InteractiveDataDisplay.WPF
         {
             get
             {
-                if (data != null && dataVersion != dataRangeVersion)
+                if (DataContainer != null && dataVersion != dataRangeVersion)
                 {
                     var r = Double.IsNaN(missingValue) ?
-                        HeatmapBuilder.GetMaxMin(data) :
-                        HeatmapBuilder.GetMaxMin(data, missingValue);
+                        HeatmapBuilder.GetMaxMin(DataContainer) :
+                        HeatmapBuilder.GetMaxMin(DataContainer, missingValue);
                     lock (locker)
                     {
                         dataRangeVersion = dataVersion;
@@ -261,10 +307,8 @@ namespace InteractiveDataDisplay.WPF
             if (state == null)
                 throw new ArgumentNullException("state");
 
-            if (!state.Bounds.IsEmpty && !state.IsCanceled && data != null)
+            if (!state.Bounds.IsEmpty && !state.IsCanceled && state.Data != null)
             {
-                //DataRect dataRect = new DataRect(state.Transform.Visible);
-                //Rect output = state.Transform.Screen;
                 DataRect dataRect = state.ActualPlotRect;
                 DataRect output = new DataRect(0, 0, state.ScreenSize.Width, state.ScreenSize.Height);
                 DataRect bounds = state.Bounds;
@@ -318,7 +362,6 @@ namespace InteractiveDataDisplay.WPF
 
                 DataRect visibleData = new DataRect(xmin, ymin, xmax, ymax);
 
-                // Capture data to local variable
                 double[,] localData;
                 double[] localX, localY;
                 long localDataVersion;
@@ -328,9 +371,9 @@ namespace InteractiveDataDisplay.WPF
                 bool getMaxMin = false;
                 lock (locker)
                 {
-                    localData = data;
-                    localX = xArr;
-                    localY = yArr;
+                    localData = state.Data;
+                    localX = state.XArr;
+                    localY = state.YArr;
                     localDataVersion = dataVersion;
                     localPalette = palette;
                     localMV = missingValue;
@@ -341,8 +384,8 @@ namespace InteractiveDataDisplay.WPF
                 if (getMaxMin)
                 {
                     localDataRange = Double.IsNaN(missingValue) ?
-                        HeatmapBuilder.GetMaxMin(data) :
-                        HeatmapBuilder.GetMaxMin(data, missingValue);
+                        HeatmapBuilder.GetMaxMin(state.Data) :
+                        HeatmapBuilder.GetMaxMin(state.Data, missingValue);
                     lock (locker)
                     {
                         if (dataVersion == localDataVersion)
@@ -351,7 +394,7 @@ namespace InteractiveDataDisplay.WPF
                             dataRange = localDataRange;
                         }
                         else
-                            return null; // New data was passed to Plot method so this render task is obsolete
+                            return null;
                     }
                 }
                 if (paletteRangeUpdateRequired)
@@ -398,26 +441,26 @@ namespace InteractiveDataDisplay.WPF
         {
             nearest = new Point(Double.NaN, Double.NaN);
             vd = Double.NaN;
-            if (data == null || xArr == null || yArr == null)
+            if (DataContainer == null || XArray == null || YArray == null)
                 return false;
-            Point dataPoint = new Point(XDataTransform.PlotToData(XFromLeft(screenPoint.X)), YDataTransform.PlotToData(YFromTop(screenPoint.Y)));//PlotContext.ScreenToData(screenPoint);
-            int i = ArrayExtensions.GetNearestIndex(xArr, dataPoint.X);
+            Point dataPoint = new Point(XDataTransform.PlotToData(XFromLeft(screenPoint.X)), YDataTransform.PlotToData(YFromTop(screenPoint.Y)));
+            int i = ArrayExtensions.GetNearestIndex(XArray, dataPoint.X);
             if (i < 0)
                 return false;
-            int j = ArrayExtensions.GetNearestIndex(yArr, dataPoint.Y);
+            int j = ArrayExtensions.GetNearestIndex(YArray, dataPoint.Y);
             if (j < 0)
                 return false;
             if (IsBitmap)
             {
-                if (i > 0 && xArr[i - 1] > dataPoint.X)
+                if (i > 0 && XArray[i - 1] > dataPoint.X)
                     i--;
-                if (j > 0 && yArr[j - 1] > dataPoint.Y)
+                if (j > 0 && YArray[j - 1] > dataPoint.Y)
                     j--;
             }
-            if (i < data.GetLength(0) && j < data.GetLength(1))
+            if (i < DataContainer.GetLength(0) && j < DataContainer.GetLength(1))
             {
-                vd = data[i, j];
-                nearest = new Point(xArr[i], yArr[j]);
+                vd = DataContainer[i, j];
+                nearest = new Point(XArray[i], YArray[j]);
                 return true;
             }
             else
@@ -431,7 +474,7 @@ namespace InteractiveDataDisplay.WPF
         {
             get
             {
-                return (data == null || xArr == null) ? false : (data.GetLength(0) == xArr.Length);
+                return (DataContainer == null || XArray == null) ? false : DataContainer.GetLength(0) == XArray.Length;
             }
         }
 
@@ -442,9 +485,247 @@ namespace InteractiveDataDisplay.WPF
         {
             get
             {
-                return (data == null || xArr == null) ? false : (data.GetLength(0) == xArr.Length - 1);
+                return (DataContainer == null || XArray == null) ? false : DataContainer.GetLength(0) == XArray.Length - 1;
             }
         }
+
+        private Polyline polyline;
+
+        /// <summary>
+        /// Gets or sets line graph points.
+        /// </summary>
+        [Category("InteractiveDataDisplay")]
+        [Description("Line graph points")]
+        public PointCollection Points
+        {
+            get { return (PointCollection)GetValue(PointsProperty); }
+            set { SetValue(PointsProperty, value); }
+        }
+
+        private static void PointsPropertyChangedHandler(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            HeatmapGraph linePlot = (HeatmapGraph)d;
+            if (linePlot != null)
+            {
+                InteractiveDataDisplay.WPF.Plot.SetPoints(linePlot.polyline, (PointCollection)e.NewValue);
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="LineGraph"/> class.
+        /// </summary>
+        public void InitLineGraph()
+        {
+            polyline = new Polyline
+            {
+                Stroke = new SolidColorBrush(Colors.Black),
+                StrokeLineJoin = PenLineJoin.Round
+            };
+
+            BindingOperations.SetBinding(polyline, Polyline.StrokeThicknessProperty, new Binding("StrokeThickness") { Source = this });
+            BindingOperations.SetBinding(this, PlotBase.PaddingProperty, new Binding("StrokeThickness") { Source = this, Converter = new LineGraphThicknessConverter() });
+
+            Children.Add(polyline);
+        }
+        static HeatmapGraph()
+        {
+            PointsProperty.OverrideMetadata(typeof(HeatmapGraph), new PropertyMetadata(new PointCollection(), PointsPropertyChangedHandler));
+        }
+
+        /// <summary>
+        /// Updates data in <see cref="Points"/> and causes a redrawing of line graph.
+        /// </summary>
+        /// <param name="x">A set of x coordinates of new points.</param>
+        /// <param name="y">A set of y coordinates of new points.</param>
+        public void Plot(IEnumerable x, IEnumerable y)
+        {
+            if (x == null)
+                throw new ArgumentNullException("x");
+            if (y == null)
+                throw new ArgumentNullException("y");
+
+            var points = new PointCollection();
+            var enx = x.GetEnumerator();
+            var eny = y.GetEnumerator();
+            while (true)
+            {
+                var nx = enx.MoveNext();
+                var ny = eny.MoveNext();
+                if (nx && ny)
+                    points.Add(new Point(Convert.ToDouble(enx.Current, CultureInfo.InvariantCulture),
+                        Convert.ToDouble(eny.Current, CultureInfo.InvariantCulture)));
+                else if (!nx && !ny)
+                    break;
+                else
+                    throw new ArgumentException("x and y have different lengthes");
+            }
+
+            Points = points;
+        }
+
+        /// <summary>
+        /// Updates data in <see cref="Points"/> and causes a redrawing of line graph.
+        /// In this version a set of x coordinates is a sequence of integers starting with zero.
+        /// </summary>
+        /// <param name="y">A set of y coordinates of new points.</param>
+        public void PlotY(IEnumerable y)
+        {
+            if (y == null)
+                throw new ArgumentNullException("y");
+            int x = 0;
+            var en = y.GetEnumerator();
+            var points = new PointCollection();
+            while (en.MoveNext())
+                points.Add(new Point(x++, Convert.ToDouble(en.Current, CultureInfo.InvariantCulture)));
+
+            Points = points;
+        }
+
+        #region Description
+        /// <summary>
+        /// Identifies the <see cref="Description"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty DescriptionProperty =
+           DependencyProperty.Register("Description",
+           typeof(string),
+           typeof(HeatmapGraph),
+           new PropertyMetadata(null,
+               (s, a) =>
+               {
+                   var lg = (HeatmapGraph)s;
+                   ToolTipService.SetToolTip(lg, a.NewValue);
+               }));
+
+        /// <summary>
+        /// Gets or sets description text for line graph. Description text appears in default
+        /// legend and tooltip.
+        /// </summary>
+        [Category("InteractiveDataDisplay")]
+        public string Description
+        {
+            get
+            {
+                return (string)GetValue(DescriptionProperty);
+            }
+            set
+            {
+                SetValue(DescriptionProperty, value);
+            }
+        }
+
+        #endregion
+
+        #region Thickness
+        /// <summary>
+        /// Identifies the <see cref="Thickness"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty StrokeThicknessProperty =
+           DependencyProperty.Register("StrokeThickness",
+           typeof(double),
+           typeof(HeatmapGraph),
+           new PropertyMetadata(1.0));
+
+        /// <summary>
+        /// Gets or sets the line thickness.
+        /// </summary>
+        /// <remarks>
+        /// The default stroke thickness is 1.0
+        /// </remarks>
+        [Category("Appearance")]
+        public double StrokeThickness
+        {
+            get
+            {
+                return (double)GetValue(StrokeThicknessProperty);
+            }
+            set
+            {
+                SetValue(StrokeThicknessProperty, value);
+            }
+        }
+        #endregion
+
+        #region Stroke
+
+        /// <summary>
+        /// Identifies the <see cref="Stroke"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty StrokeProperty =
+           DependencyProperty.Register("Stroke",
+           typeof(Brush),
+           typeof(HeatmapGraph),
+           new PropertyMetadata(new SolidColorBrush(Colors.Black), OnStrokeChanged));
+
+        private static void OnStrokeChanged(object target, DependencyPropertyChangedEventArgs e)
+        {
+            HeatmapGraph lineGraph = (HeatmapGraph)target;
+            lineGraph.polyline.Stroke = e.NewValue as Brush;
+        }
+
+        /// <summary>
+        /// Gets or sets the brush to draw the line.
+        /// </summary>
+        /// <remarks>
+        /// The default color of stroke is black
+        /// </remarks>
+        [Category("Appearance")]
+        public Brush Stroke
+        {
+            get
+            {
+                return (Brush)GetValue(StrokeProperty);
+            }
+            set
+            {
+                SetValue(StrokeProperty, value);
+            }
+        }
+        #endregion
+
+        #region StrokeDashArray
+
+        private static DoubleCollection EmptyDoubleCollection
+        {
+            get
+            {
+                var result = new DoubleCollection(0);
+                result.Freeze();
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Identifies the <see cref="StrokeDashArray"/> dependency property.
+        /// </summary>
+        public static readonly DependencyProperty StrokeDashArrayProperty =
+            DependencyProperty.Register("StrokeDashArray",
+                typeof(DoubleCollection),
+                typeof(HeatmapGraph),
+                new PropertyMetadata(EmptyDoubleCollection, OnStrokeDashArrayChanged));
+
+        private static void OnStrokeDashArrayChanged(object target, DependencyPropertyChangedEventArgs e)
+        {
+            HeatmapGraph lineGraph = (HeatmapGraph)target;
+            lineGraph.polyline.StrokeDashArray = e.NewValue as DoubleCollection;
+        }
+
+        /// <summary>
+        /// Gets or sets a collection of <see cref="Double"/> values that indicate the pattern of dashes and gaps that is used to draw the line.
+        /// </summary>
+        [Category("Appearance")]
+        public DoubleCollection StrokeDashArray
+        {
+            get
+            {
+                return (DoubleCollection)GetValue(StrokeDashArrayProperty);
+            }
+            set
+            {
+                SetValue(StrokeDashArrayProperty, value);
+            }
+        }
+        #endregion
     }
 }
+
 

@@ -66,6 +66,13 @@ namespace InteractiveDataDisplay.WPF
             VisualStateManager.GoToState(this, "Unfocused", false);
             base.OnLostFocus(e);
         }
+        public bool IsYAxesDirrectionInverted
+        {
+            get { return (bool)GetValue(IsYAxesDirrectionInvertedProperty); }
+            set { SetValue(IsYAxesDirrectionInvertedProperty, value); }
+        }
+        public static readonly DependencyProperty IsYAxesDirrectionInvertedProperty =
+            DependencyProperty.Register("IsYAxesDirrectionInverted", typeof(bool), typeof(Chart), new PropertyMetadata(false, (s, e) => { }));
 
         /// <summary>
         /// Gets or sets legend content

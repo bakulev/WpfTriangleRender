@@ -1,13 +1,10 @@
-// Copyright (c) Microsoft Corporation. All Rights Reserved.
-// Licensed under the MIT License.
-
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using System.ComponentModel;
 
 namespace InteractiveDataDisplay.WPF
 {
@@ -22,7 +19,6 @@ namespace InteractiveDataDisplay.WPF
     {
         private Canvas navigationCanvas = new Canvas
         {
-            // This background brush allows Canvas to intercept mouse events while remaining transparent
             Background = new SolidColorBrush(Color.FromArgb(0, 255, 255, 255))
         };
 
@@ -95,6 +91,13 @@ namespace InteractiveDataDisplay.WPF
         /// <summary>Identifies <see cref="IsHorizontalNavigationEnabled"/> property</summary>
         public static readonly DependencyProperty IsHorizontalNavigationEnabledProperty =
             DependencyProperty.Register("IsHorizontalNavigationEnabled", typeof(bool), typeof(MouseNavigation), new PropertyMetadata(true));
+        public bool IsDirectionInverted
+        {
+            get { return (bool)GetValue(IsDirectionInvertedProperty); }
+            set { SetValue(IsDirectionInvertedProperty, value); }
+        }
+        public static readonly DependencyProperty IsDirectionInvertedProperty =
+            DependencyProperty.Register("IsDirectionInverted", typeof(bool), typeof(MouseNavigation), new PropertyMetadata(false));
 
         void MouseNavigationUnloaded(object sender, RoutedEventArgs e)
         {
@@ -200,7 +203,6 @@ namespace InteractiveDataDisplay.WPF
             if (!CheckCursor(cursorPosition))
                 return;
 
-            // TODO: Zoom relative to mouse position
             double factor = e.Delta < 0 ? 1.2 : 1 / 1.2;
             DoZoom(factor);
             e.Handled = true;
@@ -218,7 +220,7 @@ namespace InteractiveDataDisplay.WPF
 
                 double width = rect.Width;
                 double height = rect.Height;
-
+                if (IsDirectionInverted) dy = -dy;
                 masterPlot.SetPlotRect(new DataRect(
                     rect.XMin - dx,
                     rect.YMin - dy,
@@ -233,7 +235,6 @@ namespace InteractiveDataDisplay.WPF
         {
             if (isPanning && (e.OriginalSource == navigationCanvas || e.OriginalSource == masterPlot))
             {
-                //panningEnd = e.GetPosition(this);
                 DoPan(panningStart, panningEnd);
                 isPanning = false;
             }

@@ -225,9 +225,15 @@ namespace InteractiveDataDisplay.WPF {
 
         static void DataCoordinatePropertyChangedHandler(DependencyObject obj, DependencyPropertyChangedEventArgs args)
         {
-            var parent = VisualTreeHelper.GetParent(obj);
-            if (parent is ContentPresenter) parent = VisualTreeHelper.GetParent(parent);
-            var plotBase = parent as PlotBase;
+            PlotBase plotBase = null;
+            if (obj is PlotBase)
+                plotBase = obj as PlotBase;
+            else
+            {
+                var parent = VisualTreeHelper.GetParent(obj);
+                if (parent is ContentPresenter) parent = VisualTreeHelper.GetParent(parent);
+                plotBase = parent as PlotBase;
+            }
             if (plotBase != null)
             {
                 plotBase.InvalidateBounds();
