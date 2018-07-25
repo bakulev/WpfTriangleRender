@@ -16,8 +16,11 @@
         <d3:Chart>
             <d3:HeatmapGraph
                 x:Name="heatmap"
+                d3:Plot.Points = "{Binding PlotPoints}"
                 DataContainer="{Binding Data}"
                 Palette="Black,White"
+                Stroke="Red"
+                StrokeThickness="1"
                 XArray="{Binding XArray}"
                 YArray="{Binding YArray}" />
         </d3:Chart>
