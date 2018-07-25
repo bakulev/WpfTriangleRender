@@ -218,7 +218,7 @@ namespace InteractiveDataDisplay.WPF
 
                 double width = rect.Width;
                 double height = rect.Height;
-
+                dy = -dy;
                 masterPlot.SetPlotRect(new DataRect(
                     rect.XMin - dx,
                     rect.YMin - dy,
