@@ -12,6 +12,8 @@ This is a C# WPF demo application with implemented on pure C# written triangle r
 ![interface](screenshots/interface.png)
 * InteractiveDataDisplay library was used for visualization.
 * Geometrical calculations is on [GeoGebra](https://ggbm.at/ytbgvphv)
+* Raster graphics algorithms (http://www.opita.net/node/699)
+* Modified Brsenham (http://bourabai.ru/graphics/0202.htm)
 
 ## How to install and use.
 
